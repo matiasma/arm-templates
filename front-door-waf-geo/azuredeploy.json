@@ -60,7 +60,7 @@
                                         "operator": "GeoMatch",
                                         "negateCondition": true,
                                         "matchValue": [
-                                            "[parameters('countryCode')]"
+                                            "[toUpper(parameters('countryCode'))]"
                                         ],
                                         "transforms": []
                                     }
