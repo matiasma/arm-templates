@@ -1,0 +1,209 @@
+    {
+        "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "resourceName": {
+                "type": "string",
+                "metadata": {
+                    "description": "The name of the resource (unique global name)."
+                }
+            },
+            "hostName": {
+                "type": "string",
+                "metadata": {
+                    "description": "The source website FQDN (with no http/https)."
+            }
+            },
+            "countryCode": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "metadata": {
+                    "description": "The country code (two letters) allowed to access this website."
+                }
+            },
+            "customBlockResponseBody": {
+                "type":"string",
+                "metadata": {
+                    "description": "The custom Block Response Body message"
+                }
+            }
+        },
+        "resources": [
+            {
+                "type": "Microsoft.Network/frontDoorWebApplicationFirewallPolicies",
+                "apiVersion": "2019-03-01",
+                "name": "[parameters('resourceName')]",
+                "location": "[resourceGroup().location]",
+                "tags": {},
+                "properties": {
+                    "policySettings": {
+                        "enabledState": "Enabled",
+                        "mode": "Prevention",
+                        "redirectUrl": null,
+                        "customBlockResponseStatusCode": 403,
+                        "customBlockResponseBody": "[base64(parameters('customBlockResponseBody'))]"
+                    },
+                    "customRules": {
+                        "rules": [
+                            {
+                                "name": "[parameters('countryCode')]",
+                                "priority": 100,
+                                "enabledState": "Enabled",
+                                "ruleType": "MatchRule",
+                                "rateLimitDurationInMinutes": 1,
+                                "rateLimitThreshold": 100,
+                                "matchConditions": [
+                                    {
+                                        "matchVariable": "RemoteAddr",
+                                        "selector": null,
+                                        "operator": "GeoMatch",
+                                        "negateCondition": true,
+                                        "matchValue": [
+                                            "[parameters('countryCode')]"
+                                        ],
+                                        "transforms": []
+                                    }
+                                ],
+                                "action": "Block"
+                            }
+                        ]
+                    },
+                    "managedRules": {
+                        "managedRuleSets": [
+                            {
+                                "ruleSetType": "DefaultRuleSet",
+                                "ruleSetVersion": "1.0",
+                                "ruleGroupOverrides": []
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "type": "Microsoft.Network/frontdoors",
+                "apiVersion": "2019-04-01",
+                "name": "[parameters('resourceName')]",
+                "location": "[resourceGroup().location]",
+                "dependsOn": [
+                    "[resourceId('Microsoft.Network/frontdoorwebapplicationfirewallpolicies', parameters('resourceName'))]"
+                ],
+                "tags": {},
+                "properties": {
+                    "friendlyName": "[parameters('resourceName')]",
+                    "enabledState": "Enabled",
+                    "healthProbeSettings": [
+                        {
+                            "name": "healthProbeSettings",
+                            "properties": {
+                                "path": "/",
+                                "protocol": "Https",
+                                "intervalInSeconds": 5
+                            }
+                        }
+                    ],
+                    "loadBalancingSettings": [
+                        {
+                            "name": "loadBalancingSettings",
+                            "properties": {
+                                "sampleSize": 1,
+                                "successfulSamplesRequired": 1,
+                                "additionalLatencyMilliseconds": 0
+                            }
+                        }
+                    ],
+                    "frontendEndpoints": [
+                        {
+                            "name": "[parameters('resourceName')]",
+                            "properties": {
+                                "hostName": "[concat(parameters('resourceName'),'.azurefd.net')]",
+                                "sessionAffinityEnabledState": "Disabled",
+                                "sessionAffinityTtlSeconds": 0,
+                                "webApplicationFirewallPolicyLink": {
+                                    "id": "[resourceId('Microsoft.Network/frontdoorwebapplicationfirewallpolicies', parameters('resourceName'))]"
+                                }
+                            }
+                        }
+                    ],
+                    "backendPools": [
+                        {
+                            "name": "[parameters('resourceName')]",
+                            "properties": {
+                                "backends": [
+                                    {
+                                        "address": "[parameters('hostName')]",
+                                        "enabledState": "Enabled",
+                                        "httpPort": 80,
+                                        "httpsPort": 443,
+                                        "priority": 1,
+                                        "weight": 50,
+                                        "backendHostHeader": "[parameters('hostName')]"
+                                    }
+                                ],
+                                "loadBalancingSettings": {
+                                    "id": "[resourceId('Microsoft.Network/frontdoors/loadBalancingSettings', parameters('resourceName'), 'loadBalancingSettings')]"
+                                },
+                                "healthProbeSettings": {
+                                    "id": "[resourceId('Microsoft.Network/frontdoors/healthProbeSettings', parameters('resourceName'), 'healthProbeSettings')]"
+                                }
+                            }
+                        }
+                    ],
+                    "routingRules": [
+                        {
+                            "name": "https",
+                            "properties": {
+                                "frontendEndpoints": [
+                                    {
+                                        "id": "[resourceId('Microsoft.Network/frontdoors/frontendEndpoints', parameters('resourceName'), parameters('resourceName'))]"
+                                    }
+                                ],
+                                "acceptedProtocols": [
+                                    "Https"
+                                ],
+                                "patternsToMatch": [
+                                    "/*"
+                                ],
+                                "enabledState": "Enabled",
+                                "routeConfiguration": {
+                                    "@odata.type": "#Microsoft.Azure.FrontDoor.Models.FrontdoorForwardingConfiguration",
+                                    "customForwardingPath": null,
+                                    "forwardingProtocol": "HttpsOnly",
+                                    "backendPool": {
+                                        "id": "[resourceId('Microsoft.Network/frontdoors/backendPools', parameters('resourceName'), parameters('resourceName'))]"
+                                    },
+                                    "cacheConfiguration": null
+                                }
+                            }
+                        },
+                        {
+                            "name": "http",
+                            "properties": {
+                                "frontendEndpoints": [
+                                    {
+                                        "id": "[resourceId('Microsoft.Network/frontdoors/frontendEndpoints', parameters('resourceName'), parameters('resourceName'))]"
+                                    }
+                                ],
+                                "acceptedProtocols": [
+                                    "Http"
+                                ],
+                                "patternsToMatch": [
+                                    "/*"
+                                ],
+                                "enabledState": "Enabled",
+                                "routeConfiguration": {
+                                    "@odata.type": "#Microsoft.Azure.FrontDoor.Models.FrontdoorRedirectConfiguration",
+                                    "redirectType": "Moved",
+                                    "redirectProtocol": "HttpsOnly",
+                                    "customHost": null,
+                                    "customPath": null,
+                                    "customQueryString": null,
+                                    "customFragment": null
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
