@@ -10,7 +10,7 @@
                     "description": "The name of the resource (unique global name)."
                 }
             },
-            "hostName": {
+            "webSite": {
                 "type": "string",
                 "metadata": {
                     "description": "The source website FQDN (with no http/https)."
@@ -133,13 +133,13 @@
                             "properties": {
                                 "backends": [
                                     {
-                                        "address": "[parameters('hostName')]",
+                                        "address": "[parameters('webSite')]",
                                         "enabledState": "Enabled",
                                         "httpPort": 80,
                                         "httpsPort": 443,
                                         "priority": 1,
                                         "weight": 50,
-                                        "backendHostHeader": "[parameters('hostName')]"
+                                        "backendHostHeader": "[parameters('webSite')]"
                                     }
                                 ],
                                 "loadBalancingSettings": {
