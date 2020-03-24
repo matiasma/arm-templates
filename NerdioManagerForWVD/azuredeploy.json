@@ -1,0 +1,424 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources"
+            }
+        },
+        "deploymentDate": {
+            "type": "string",
+            "defaultValue": "[utcNow()]"
+        },
+        "appName": {
+            "type": "string",
+            "defaultValue": "nmw-app",
+            "metadata": {
+                "description": "Base name of the resource such as web app name and app service plan"
+            },
+            "minLength": 2
+        },
+        "azureTagPrefix": {
+            "type": "string",
+            "defaultValue": "NMW",
+            "metadata": {
+                "description": "Prefix for Azure Tags"
+            }
+        },
+        "appServicePlanSkuName": {
+            "type": "string",
+            "defaultValue": "B1",
+            "metadata": {
+                "description": "The SKU of App Service Plan, by default is Standard S1"
+            }
+        },
+        "sqlServerLogin": {
+            "type": "string",
+            "defaultValue": "NmwSqlAdministrator",
+            "metadata": {
+                "description": "Login name for existing SQL Server"
+            }
+        },
+        "sqlServerPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for existing SQL Server"
+            }
+        },
+        "sqlServerName": {
+            "type": "string",
+            "defaultValue": "sqlservername.database.windows.net",
+            "metadata": {
+                "description": "SQL server FQDN"
+            }
+        },
+        "databaseName": {
+            "type": "string",
+            "defaultValue": "nmw-app-db",
+            "metadata": {
+                "description": "Database name for existing SQL Server"
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Virtual Network (VNET)"
+            },
+            "defaultValue": "fwVNET"
+        },
+        "vnetNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Use new or existing VNET"
+            }
+        },
+        "virtualNetworkAddressPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/16",
+            "metadata": {
+                "description": "Virtual network address CIDR"
+            }
+        },
+        "virtualNetworkExistingRGName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of resource group of existing VNET (if applicable)"
+            }
+        },
+        "subnet0Name": {
+            "type": "string",
+            "defaultValue": "Mgmt",
+            "metadata": {
+                "description": "Subnet for Management"
+            }
+        },
+        "subnet0Prefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/24",
+            "metadata": {
+                "description": "Mgmt subnet CIDR"
+            }
+        },
+        "automationEnabled": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable automation"
+            }
+        },
+        "automationRunAsUsername": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Automation run as user"
+            }
+        },
+        "automationRunAsPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Automation run as password"
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            },
+            "defaultValue": "https://catalogartifact.azureedge.net/publicartifacts/nerdio.nerdio_wvd_manager-b1689c4a-7225-4e07-926f-c7ff62446de1-nwm-plan/Artifacts/mainTemplate.json"
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+            },
+            "defaultValue": ""
+        }
+    },
+    "variables": {
+        "webAppPortalName": "[concat(parameters('appName'), '-', uniqueString(subscription().id, resourceGroup().id))]",
+        "appServicePlanName": "[concat(parameters('appName'), '-plan-', uniqueString(subscription().id, resourceGroup().id))]",
+        "keyVaultName": "[concat(parameters('appName'), '-kv-', uniqueString(subscription().id, resourceGroup().id))]",
+        "appInsightsName": "[concat(parameters('appName'), '-insights-', uniqueString(subscription().id, resourceGroup().id))]",
+        "vnetID": "[resourceId(parameters('virtualNetworkExistingRGName'), concat('Microsoft.Network', '/' ,'virtualNetworks'), parameters('virtualNetworkName'))]",
+        "subnets": [
+            {
+                "name": "[parameters('subnet0Name')]",
+                "properties": {
+                    "addressPrefix": "[parameters('subnet0Prefix')]"
+                }
+            }
+        ],
+        "automationAccountName": "[concat(parameters('appName'), '-automation-', uniqueString(subscription().id, resourceGroup().id))]",
+        "vnetSetupURL": "[uri(parameters('_artifactsLocation'), concat('vnet-', parameters('vnetNewOrExisting'),'.json', parameters('_artifactsLocationSasToken')))]",
+        "automationSetupURL": "[uri(parameters('_artifactsLocation'), concat('automation.json', parameters('_artifactsLocationSasToken')))]",
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-05-10",
+            "name": "pid-1ecf464e-7d9b-4445-8d55-a08c6e338a53",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-05-01",
+            "name": "[variables('appInsightsName')]",
+            "type": "Microsoft.Insights/components",
+            "location": "[parameters('location')]",
+            "kind": "web",
+            "tags": {
+                "displayName": "AppInsightsComponent"
+            },
+            "properties": {
+                "applicationId": "[variables('appInsightsName')]",
+                "Application_Type": "web"
+            }
+        },
+        {
+            "apiVersion": "2018-02-01",
+            "type": "Microsoft.Web/serverfarms",
+            "kind": "app",
+            "name": "[variables('appServicePlanName')]",
+            "location": "[parameters('location')]",
+            "properties": {},
+            "sku": {
+                "name": "[parameters('appServicePlanSkuName')]"
+            }
+        },
+        {
+            "apiVersion": "2018-11-01",
+            "type": "Microsoft.Web/sites",
+            "kind": "app",
+            "name": "[variables('webAppPortalName')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "siteConfig": {
+                    "AlwaysOn": true,
+                    "use32BitWorkerProcess": false,
+                    "appSettings": [
+                        {
+                            "name": "Deployment:Region",
+                            "value": "[parameters('location')]"
+                        },
+                        {
+                            "name": "Deployment:KeyVaultName",
+                            "value": "[variables('keyVaultName')]"
+                        },
+                        {
+                            "name": "Deployment:SubscriptionId",
+                            "value": "[subscription().subscriptionId]"
+                        },
+                        {
+                            "name": "Deployment:SubscriptionDisplayName",
+                            "value": "[subscription().displayName]"
+                        },
+                        {
+                            "name": "Deployment:TenantId",
+                            "value": "[subscription().tenantId]"
+                        },
+                        {
+                            "name": "Deployment:ResourceGroupName",
+                            "value": "[resourceGroup().name]"
+                        },
+                        {
+                            "name": "Deployment:WebAppName",
+                            "value": "[variables('webAppPortalName')]"
+                        },
+                        {
+                            "name": "Deployment:NetworkId",
+                            "value": "[variables('vnetID')]"
+                        },
+                        {
+                            "name": "Deployment:NetworkSubnet",
+                            "value": "[parameters('subnet0Name')]"
+                        },
+                        {
+                            "name": "Deployment:AutomationAccountName",
+                            "value": "[variables('automationAccountName')]"
+                        },
+                        {
+                            "name": "Deployment:AutomationEnabled",
+                            "value": "[parameters('automationEnabled')]"
+                        },
+                        {
+                            "name": "Deployment:AzureTagPrefix",
+                            "value": "[parameters('azureTagPrefix')]"
+                        },
+                        {
+                            "name": "Deployment:UpdaterRunbook",
+                            "value": "nmwUpdate"
+                        },
+                        {
+                            "name": "ApplicationInsights:InstrumentationKey",
+                            "value": "[reference(concat('microsoft.insights/components/', variables('appInsightsName'))).InstrumentationKey]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "[resourceId('microsoft.insights/components/', variables('appInsightsName'))]"
+            ],
+            "resources": [
+                {
+                    "name": "MSDeploy",
+                    "type": "extensions",
+                    "location": "[parameters('location')]",
+                    "apiVersion": "2018-11-01",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('webAppPortalName'))]"
+                    ],
+                    "properties": {
+                        "packageUri": "[uri(parameters('_artifactsLocation'), concat('web-app/app.zip', parameters('_artifactsLocationSasToken')))]"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "name": "[variables('keyVaultName')]",
+            "apiVersion": "2016-10-01",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "Standard"
+                },
+                "tenantId": "[reference(concat('Microsoft.Web/sites/', variables('webAppPortalName')), '2018-11-01', 'Full').identity.tenantId]",
+                "accessPolicies": [
+                    {
+                        "tenantId": "[reference(concat('Microsoft.Web/sites/', variables('webAppPortalName')), '2018-11-01', 'Full').identity.tenantId]",
+                        "objectId": "[reference(concat('Microsoft.Web/sites/', variables('webAppPortalName')), '2018-11-01', 'Full').identity.principalId]",
+                        "permissions": {
+                            "secrets": [
+                                "get",
+                                "list",
+                                "set"
+                            ]
+                        }
+                    }
+                ],
+                "enabledForDeployment": false
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.KeyVault/vaults/secrets",
+                    "name": "[concat(variables('keyVaultName'), '/ConnectionStrings--DefaultConnection')]",
+                    "apiVersion": "2016-10-01",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[concat('Server=tcp:', parameters('sqlServerName'), ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlServerLogin'), ';Password=', parameters('sqlServerPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[concat('Microsoft.Web/sites/', variables('webAppPortalName'))]"
+            ]
+        },
+        {
+            "name": "SettingUpVirtualNetwork",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vnetSetupURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[parameters('virtualNetworkName')]"
+                    },
+                    "virtualNetworkAddressPrefix": {
+                        "value": "[parameters('virtualNetworkAddressPrefix')]"
+                    },
+                    "subnets": {
+                        "value": "[variables('subnets')]"
+                    },
+                    "virtualNetworkExistingRGName": {
+                        "value": "[parameters('virtualNetworkExistingRGName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "SettingUpAutomation",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('automationSetupURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "automationAccountName": {
+                        "value": "[variables('automationAccountName')]"
+                    },
+                    "automationEnabled": {
+                        "value": "[parameters('automationEnabled')]"
+                    },
+                    "automationRunAsUsername": {
+                        "value": "[parameters('automationRunAsUsername')]"
+                    },
+                    "automationRunAsPassword": {
+                        "value": "[parameters('automationRunAsPassword')]"
+                    },
+                    "subscriptionId": {
+                        "value": "[subscription().SubscriptionId]"
+                    },
+                    "resourceGroupName": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "webAppName": {
+                        "value": "[variables('webAppPortalName')]"
+                    },
+                    "installScriptUri": {
+                        "value": "[uri(parameters('_artifactsLocation'), concat('scripts/nmw-install.ps1', parameters('_artifactsLocationSasToken')))]"
+                    },
+                    "updateScriptUri": {
+                        "value": "[uri(parameters('_artifactsLocation'), concat('scripts/nmw-update.ps1', parameters('_artifactsLocationSasToken')))]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "appUrl": {
+            "type": "string",
+            "value": "[concat('https://', variables('webAppPortalName'), '.azurewebsites.net')]"
+        }
+    }
+}
