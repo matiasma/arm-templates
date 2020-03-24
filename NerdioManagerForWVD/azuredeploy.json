@@ -160,7 +160,7 @@
         ],
         "automationAccountName": "[concat(parameters('appName'), '-automation-', uniqueString(subscription().id, resourceGroup().id))]",
         "vnetSetupURL": "[uri(parameters('_artifactsLocation'), concat('vnet-', parameters('vnetNewOrExisting'),'.json', parameters('_artifactsLocationSasToken')))]",
-        "automationSetupURL": "[uri(parameters('_artifactsLocation'), concat('automation.json', parameters('_artifactsLocationSasToken')))]",
+        "automationSetupURL": "[uri(parameters('_artifactsLocation'), concat('automation.json', parameters('_artifactsLocationSasToken')))]"
     },
     "resources": [
         {
