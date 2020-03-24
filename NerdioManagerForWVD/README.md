@@ -3,7 +3,7 @@
 <a href="https%3A%2F%2Fraw.githubusercontent.com%2Fmatiasma%2Farm-templates%2Fmaster%2FNerdioManagerForWVD%2Fazuredeploy.json" target="_blank">
 </a>
 <p>
-If you are using a current Azure SQL DB, please set the SQL Server firewall settings as the image below:
+If you are using an Azure SQL DB, please set the SQL Server firewall settings as the image below:
 </p>
     <img src="https://raw.githubusercontent.com/matiasma/arm-templates/master/NerdioManagerForWVD/sql-firewall.PNG"/>
 <p>
