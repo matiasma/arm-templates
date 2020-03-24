@@ -5,9 +5,8 @@ Template to provision a Nerdio Manager for WVD using an existing SQL DB (if you 
 </a>
 <p>
 If you are using an Azure SQL DB, please set the SQL Server firewall settings as the image below:
+<img src="https://raw.githubusercontent.com/matiasma/arm-templates/master/NerdioManagerForWVD/sql-firewall.PNG">
 
-    <img src="https://raw.githubusercontent.com/matiasma/arm-templates/master/NerdioManagerForWVD/sql-firewall.PNG"/>
-<br>
 For provision an production environment, please use the Nerdio marketplace offer: 
 https://azuremarketplace.microsoft.com/en-us/marketplace/apps/nerdio.nerdio_wvd_manager?tab=OverviewIf you need to provision this environment for Production 
 </p>
