@@ -8,5 +8,5 @@ If you are using an Azure SQL DB, please set the SQL Server firewall settings as
 
 <img src="https://raw.githubusercontent.com/matiasma/arm-templates/master/NerdioManagerForWVD/sql-firewall.PNG">
 
-For provision an production environment, please use the Nerdio marketplace offer: 
+To provision an production environment, please use the Nerdio marketplace offer: 
 https://azuremarketplace.microsoft.com/en-us/marketplace/apps/nerdio.nerdio_wvd_manager?tab=Overview
