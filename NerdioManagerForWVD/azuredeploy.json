@@ -55,6 +55,17 @@
                 "description": "SQL server FQDN"
             }
         },
+        "sqlEncrypt": {
+            "type": "string",
+                "allowedValues": [
+                    "True",
+                    "False"
+                ],
+            "defaultValue": "True",
+            "metadata": {
+                "description": "Choose the connection encryption method supported by your current SQL Server"
+            }
+        },
         "databaseName": {
             "type": "string",
             "defaultValue": "nmw-app-db",
@@ -330,7 +341,7 @@
                         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
                     ],
                     "properties": {
-                        "value": "[concat('Server=tcp:', parameters('sqlServerName'), ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlServerLogin'), ';Password=', parameters('sqlServerPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]",
+                        "value": "[concat('Server=tcp:', parameters('sqlServerName'), ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlServerLogin'), ';Password=', parameters('sqlServerPassword'), ';MultipleActiveResultSets=False;Encrypt='parameters('sqlEncrypt')' ;TrustServerCertificate=False;Connection Timeout=30;')]",
                         "attributes": {
                             "enabled": true
                         }
