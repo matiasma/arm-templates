@@ -341,7 +341,7 @@
                         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
                     ],
                     "properties": {
-                        "value": "[concat('Server=tcp:', parameters('sqlServerName'), ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlServerLogin'), ';Password=', parameters('sqlServerPassword'), ';MultipleActiveResultSets=False;Encrypt=', parameters('sqlEncrypt'),' ;TrustServerCertificate=False;Connection Timeout=30;')]",
+                        "value": "[concat('Server=tcp:', parameters('sqlServerName'), ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlServerLogin'), ';Password=', parameters('sqlServerPassword'), ';MultipleActiveResultSets=False;Encrypt=', parameters('sqlEncrypt'),';TrustServerCertificate=False;Connection Timeout=30;')]",
                         "attributes": {
                             "enabled": true
                         }
