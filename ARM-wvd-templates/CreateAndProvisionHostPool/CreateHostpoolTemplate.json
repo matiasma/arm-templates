@@ -426,7 +426,6 @@
     "createVMs": "[greater(parameters('vmNumberOfInstances'),0)]",
     "rdshManagedDisks": "[if(equals(parameters('vmImageType'), 'CustomVHD'), parameters('vmUseManagedDisks'), bool('true'))]",
     "rdshPrefix": "[concat(parameters('vmNamePrefix'),'-')]",
-    "avSetSKU": "[if(variables('rdshManagedDisks'), 'Aligned', 'Classic')]",
     "existingDomainUsername": "[first(split(parameters('administratorAccountUsername'), '@'))]",
     "vhds": "[concat('vhds','/', variables('rdshPrefix'))]",
     "subnet-id": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',parameters('existingVnetName'), parameters('existingSubnetName'))]",
@@ -526,9 +525,6 @@
       "type": "Microsoft.Resources/deployments",
       "condition": "[variables('createVMs')]",
       "resourceGroup": "[parameters('vmResourceGroup')]",
-      "dependsOn": [
-        "[concat('AVSet-linkedTemplate-', parameters('deploymentId'))]"
-      ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
