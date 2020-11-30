@@ -7,7 +7,7 @@
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located."
             },
-            "defaultValue": "https://raw.githubusercontent.com/matiasma/arm-templates/master/ARM-wvd-templates/nestedtemplates/"
+            "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/nestedtemplates/"
         },
         "artifactsLocation": {
             "type": "string",
@@ -66,6 +66,12 @@
             "type": "securestring",
             "metadata": {
                 "description": "The password that corresponds to the existing domain username."
+            }
+        },
+        "createAvailabilitySet": {
+            "type": "bool",
+            "metadata": {
+                "description": "Whether to create a new availability set for the VMs"
             }
         },
         "vmResourceGroup": {
@@ -245,6 +251,13 @@
             },
             "defaultValue": []
         },
+        "availabilitySetTags": {
+            "type": "object",
+            "metadata": {
+                "description": "The tags to be assigned to the availability set"
+            },
+            "defaultValue": {}
+        },
         "networkInterfaceTags": {
             "type": "object",
             "metadata": {
@@ -312,6 +325,7 @@
     "variables": {
         "rdshManagedDisks": "[if(equals(parameters('vmImageType'), 'CustomVHD'), parameters('vmUseManagedDisks'), bool('true'))]",
         "rdshPrefix": "[concat(parameters('vmNamePrefix'),'-')]",
+        "avSetSKU": "[if(variables('rdshManagedDisks'), 'Aligned', 'Classic')]",
         "existingDomainUsername": "[first(split(parameters('administratorAccountUsername'), '@'))]",
         "vhds": "[concat('vhds','/', variables('rdshPrefix'))]",
         "subnet-id": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',parameters('existingVnetName'), parameters('existingSubnetName'))]",
@@ -356,8 +370,44 @@
         },
         {
             "apiVersion": "2018-05-01",
+            "name": "[concat('AVSet-linkedTemplate-', parameters('deploymentId'))]",
+            "type": "Microsoft.Resources/deployments",
+            "resourceGroup": "[parameters('vmResourceGroup')]",
+            "condition": "[parameters('createAvailabilitySet')]",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "apiVersion": "2018-10-01",
+                            "type": "Microsoft.Compute/availabilitySets",
+                            "name": "[concat(variables('rdshPrefix'), 'availabilitySet-', parameters('vmLocation'))]",
+                            "location": "[parameters('vmLocation')]",
+                            "tags": "[parameters('availabilitySetTags')]",
+                            "properties": {
+                                "platformUpdateDomainCount": 5,
+                                "platformFaultDomainCount": 2
+                            },
+                            "sku": {
+                                "name": "[variables('avSetSKU')]"
+                            }
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat('UpdateHostPool-', parameters('deploymentId'))]"
+            ]
+        },
+        {
+            "apiVersion": "2018-05-01",
             "name": "[concat('vmCreation-linkedTemplate-', parameters('deploymentId'))]",
             "resourceGroup": "[parameters('vmResourceGroup')]",
+            "dependsOn": [
+                "[concat('AVSet-linkedTemplate-', parameters('deploymentId'))]"
+            ],
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
@@ -386,6 +436,9 @@
                     },
                     "rdshPrefix": {
                         "value": "[variables('rdshPrefix')]"
+                    },
+                    "createAvailabilitySet": {
+                        "value": "[parameters('createAvailabilitySet')]"
                     },
                     "rdshNumberOfInstances": {
                         "value": "[parameters('vmNumberOfInstances')]"
